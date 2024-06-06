@@ -1,0 +1,67 @@
+##read in the results from the two EWAS 
+
+read.csv("/CannabisMetaAnalysis2023/gap_canfreq_cellcomp_plate_interaction_updatedallvariables_nov2023.csv", stringsAsFactors=F, header=T,row.names=1)->gapcan
+
+read.csv("/CannabisMetaAnalysis2023/can_current2_eug_geneticpc_interaction_nov23.csv",stringsAsFactors=F, header=T,row.names=1)->eucur
+
+
+#probenames that match
+sampleIDs<-intersect(rownames(gapcan),rownames(eucur))
+
+
+
+e1<-eucur[match(sampleIDs,rownames(eucur)),]
+
+g2<-gapcan[match(sampleIDs,rownames(gapcan)),]
+all<-cbind(g2,e1)
+
+
+
+names(all)[1]<-paste("Beta_GAP")
+names(all)[2]<-paste("SE_GAP")
+names(all)[3]<-paste("P_GAP")
+
+
+#metanalysis 
+
+library("meta")
+
+res<-matrix(data = NA, nrow = nrow(all), ncol = 8)
+rownames(res)<-rownames(all)
+colnames(res)<-c("Effect_Fixed", "P_Fixed", "SE_Fixed", "Effect_Random", "P_Random","SE_Random", "I2", "Het P")
+
+for(i in 1:nrow(all)){
+if(is.na(all$Beta_GAP[i]) != TRUE & is.na(all$Eugi_SE[i])!=TRUE){
+out<-metagen(c(all$Beta_GAP[i],all$Eugi_Beta[i])*100, c(all$SE_GAP[i],all$Eugi_SE[i])*100)
+res[i,]<-c(out$TE.fixed,out$pval.fixed, out$seTE.fixed, out$TE.random, out$pval.random, out$seTE.random, out$I2, 1-pchisq(out$Q, out$df.Q))
+}
+}
+
+#check same order first?
+all<-cbind(res,all)
+
+write.csv(all,"meta_current2casecon_gapeugiupdatedcellcompmethplategeneticPC_Interaction_ME_may24v2.csv")
+
+small<-all[,c(1:12,23:24,33,66,83:87)]
+write.csv(small,"meta_current2casecon_gapeugiupdatedcellcompmethplategeneticPC_Interaction_ME_may24_smallv2.csv")
+
+##interaction term
+
+
+res<-matrix(data = NA, nrow = nrow(all), ncol = 8)
+rownames(res)<-rownames(all)
+colnames(res)<-c("Effect_Fixed", "P_Fixed", "SE_Fixed", "Effect_Random", "P_Random","SE_Random", "I2", "Het P")
+
+for(i in 1:nrow(all)){
+if(is.na(all$Beta_GAP[i]) != TRUE & is.na(all$Eugi_SE[i])!=TRUE){
+out<-metagen(c(all$Beta_IS[i],all$Eugi_Int_beta[i])*100, c(all$SE_IS[i],all$Eugi_Int_SE[i])*100)
+res[i,]<-c(out$TE.fixed,out$pval.fixed, out$seTE.fixed, out$TE.random, out$pval.random, out$seTE.random, out$I2, 1-pchisq(out$Q, out$df.Q))
+}
+}
+
+
+
+#check same order first?
+all<-cbind(res,all)
+
+write.csv(all,"meta_current2casecon_gapeugiupdatedcellcompmethplategeneticPC_Interaction_IT_nov23.csv")
